@@ -20,7 +20,7 @@ data "google_client_config" "default" {}
 
 provider "kubernetes" {
   
-  host = "${module.k8s.gke-cluster.endpoint}"
+  host = "https://${module.k8s.gke-cluster.endpoint}"
   token                  = data.google_client_config.default.access_token
   client_certificate     = base64decode(module.k8s.gke-cluster.master_auth.0.client_certificate)
   client_key             = base64decode(module.k8s.gke-cluster.master_auth.0.client_key)

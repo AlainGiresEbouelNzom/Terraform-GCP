@@ -28,8 +28,8 @@ resource "kubernetes_pod" "pod" {
     name = "ngnix-pod"
     labels = {
       app = "nginx"
+    }    
     namespace = "dev"
-    }
   }
 
   spec {
@@ -49,7 +49,7 @@ resource "kubernetes_service" "service" {
   }
   spec {
     selector = {
-      app = "${kubernetes_pod.pod.metadata.0.labels.app}"
+      app = kubernetes_pod.pod.metadata.0.labels.app
     }
     port {
       port        = 80
@@ -60,80 +60,67 @@ resource "kubernetes_service" "service" {
   }
 }
 
+resource "google_compute_ssl_policy" "ssl-policy" {
+  name            = "ssl-policy"
+  min_tls_version = "TLS_1_2"
+}
 
-# resource "kubernetes_ingress" "ingress" {
-#   metadata {
-#     name = "projet-demo-ingress"
-#     namespace = "dev"
-#   }
+resource "kubernetes_ingress_v1" "ingress2" {
+  wait_for_load_balancer = true
+  depends_on = [ kubernetes_manifest.frontendConfig ]
+  metadata {
+    name = "ingress2"
+    namespace = "dev"
+    annotations = {
+      "kubernetes.io/ingress.class" = "nginx"
+      "networking.gke.io/v1beta1.FrontendConfig" = kubernetes_manifest.frontendConfig.manifest.metadata.name
+       "ingress.gcp.kubernetes.io/pre-shared-cert" = google_compute_managed_ssl_certificate.domain_certificate.name
 
-#   spec {
-#     backend {
-#       service_name = "project-demo-service"
-#     }
+    }
+  }
+  spec {
+    rule {
+      host = "project.demo.numerixmd.com"
+      http {
+        path {
+          # path = "/*"
+          backend {
+            service {
+              name = "project-demo-service"
+              port {
+                number = 80
+              }
+            }            
+          }
+        }
+      }
+    }
+  }
+}
 
-#     rule {
-#       http {
-#         path {
-#           backend {
-#             service_name = "project-demo-service"
-#           }
+resource "kubernetes_manifest" "frontendConfig" {
+  depends_on = [ google_compute_ssl_policy.ssl-policy ]
+  manifest = {
+    apiVersion = "networking.gke.io/v1beta1"
+    kind       = "FrontendConfig"
 
-#           path = "/"
-#         }   
-#       }    
-#     }
+    metadata = {
+      name = "frontend-config"
+      namespace = "dev"
+    }
 
-#   #   tls {
-#   #     secret_name = "tls-secret"
-#   #   }
-#   }
-# }
-# resource "google_compute_ssl_policy" "ssl-policy" {
-#   name            = "ssl-policy"
-#   min_tls_version = "TLS_1_2"
-# }
+    spec = {
+      sslPolicy = google_compute_ssl_policy.ssl-policy.name
+    }
+  }
+}
 
-# resource "kubernetes_ingress" "ingress2" {
-#   wait_for_load_balancer = true
-#   depends_on = [ kubernetes_manifest.frontendConfig ]
-#   metadata {
-#     name = "ingress2"
-#     namespace = "dev"
-#     annotations = {
-#       "kubernetes.io/ingress.class" = "nginx"
-#       "networking.gke.io/v1beta1.FrontendConfig" = kubernetes_manifest.frontendConfig.manifest.metadata.name
-#     }
-#   }
-#   spec {
-#     rule {
-#       host = "projeect.demo.numerixmd.com"
-#       http {
-#         path {
-#           # path = "/*"
-#           backend {
-#             service_name = "project-demo-service"
-#             service_port = 80
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
+resource "google_compute_managed_ssl_certificate" "domain_certificate" {
 
-# resource "kubernetes_manifest" "frontendConfig" {
-#   depends_on = [ google_compute_ssl_policy.ssl-policy ]
-#   manifest = {
-#     apiVersion = "networking.gke.io/v1beta1"
-#     kind       = "FrontendConfig"
-
-#     metadata = {
-#       name = "frontend-config"
-#       namespace = "dev"
-#     }
-
-#     spec = {
-#       sslPolicy = google_compute_ssl_policy.ssl-policy.name
-#     }
-#   }
-# }
+  provider = google-beta
+  project  = "project-demo-prod-385204"
+  name     = "project-demo-prod-certificate"
+  managed {
+    domains = ["project.demo.numerixmd.com"]
+  }
+}
