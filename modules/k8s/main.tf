@@ -89,51 +89,51 @@ resource "kubernetes_service" "service" {
 #   #   }
 #   }
 # }
-resource "google_compute_ssl_policy" "ssl-policy" {
-  name            = "ssl-policy"
-  min_tls_version = "TLS_1_2"
-}
+# resource "google_compute_ssl_policy" "ssl-policy" {
+#   name            = "ssl-policy"
+#   min_tls_version = "TLS_1_2"
+# }
 
-resource "kubernetes_ingress" "ingress2" {
-  wait_for_load_balancer = true
-  depends_on = [ kubernetes_manifest.frontendConfig ]
-  metadata {
-    name = "ingress2"
-    namespace = "dev"
-    annotations = {
-      "kubernetes.io/ingress.class" = "nginx"
-      "networking.gke.io/v1beta1.FrontendConfig" = kubernetes_manifest.frontendConfig.manifest.metadata.name
-    }
-  }
-  spec {
-    rule {
-      host = "projeect.demo.numerixmd.com"
-      http {
-        path {
-          # path = "/*"
-          backend {
-            service_name = "project-demo-service"
-            service_port = 80
-          }
-        }
-      }
-    }
-  }
-}
+# resource "kubernetes_ingress" "ingress2" {
+#   wait_for_load_balancer = true
+#   depends_on = [ kubernetes_manifest.frontendConfig ]
+#   metadata {
+#     name = "ingress2"
+#     namespace = "dev"
+#     annotations = {
+#       "kubernetes.io/ingress.class" = "nginx"
+#       "networking.gke.io/v1beta1.FrontendConfig" = kubernetes_manifest.frontendConfig.manifest.metadata.name
+#     }
+#   }
+#   spec {
+#     rule {
+#       host = "projeect.demo.numerixmd.com"
+#       http {
+#         path {
+#           # path = "/*"
+#           backend {
+#             service_name = "project-demo-service"
+#             service_port = 80
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_manifest" "frontendConfig" {
-  depends_on = [ google_compute_ssl_policy.ssl-policy ]
-  manifest = {
-    apiVersion = "networking.gke.io/v1beta1"
-    kind       = "FrontendConfig"
+# resource "kubernetes_manifest" "frontendConfig" {
+#   depends_on = [ google_compute_ssl_policy.ssl-policy ]
+#   manifest = {
+#     apiVersion = "networking.gke.io/v1beta1"
+#     kind       = "FrontendConfig"
 
-    metadata = {
-      name = "frontend-config"
-      namespace = "dev"
-    }
+#     metadata = {
+#       name = "frontend-config"
+#       namespace = "dev"
+#     }
 
-    spec = {
-      sslPolicy = google_compute_ssl_policy.ssl-policy.name
-    }
-  }
-}
+#     spec = {
+#       sslPolicy = google_compute_ssl_policy.ssl-policy.name
+#     }
+#   }
+# }
